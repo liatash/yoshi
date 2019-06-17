@@ -19,18 +19,10 @@ if (cliArgs.production) {
   process.env.NODE_ENV = 'production';
 }
 
-const path = require('path');
 const fs = require('fs-extra');
 const chalk = require('chalk');
 const openBrowser = require('./utils/open-browser');
-const chokidar = require('chokidar');
 const project = require('yoshi-config');
-const {
-  BUILD_DIR,
-  PUBLIC_DIR,
-  ASSETS_DIR,
-  TARGET_DIR,
-} = require('yoshi-config/paths');
 const { PORT } = require('../constants');
 const {
   createClientWebpackConfig,
@@ -42,52 +34,33 @@ const {
   waitForCompilation,
 } = require('../webpack-utils');
 const ServerProcess = require('../server-process');
+const { watchPublicFolder } = require('./utils/assets');
+const rootApp = require('yoshi-helpers/root-app');
 
 const host = '0.0.0.0';
 
 const https = cliArgs.https || project.servers.cdn.ssl;
 
-function watchPublicFolder() {
-  const watcher = chokidar.watch(PUBLIC_DIR, {
-    persistent: true,
-    ignoreInitial: false,
-    cwd: PUBLIC_DIR,
-  });
-
-  const copyFile = relativePath => {
-    return fs.copy(
-      path.join(PUBLIC_DIR, relativePath),
-      path.join(ASSETS_DIR, relativePath),
-    );
-  };
-
-  const removeFile = relativePath => {
-    return fs.remove(path.join(ASSETS_DIR, relativePath));
-  };
-
-  watcher.on('change', copyFile);
-  watcher.on('add', copyFile);
-  watcher.on('unlink', removeFile);
-}
-
-module.exports = async () => {
+module.exports = async (app = rootApp) => {
   // Clean tmp folders
-  await Promise.all([fs.emptyDir(BUILD_DIR), fs.emptyDir(TARGET_DIR)]);
+  await Promise.all([fs.emptyDir(app.BUILD_DIR), fs.emptyDir(app.TARGET_DIR)]);
 
   // Copy public to statics dir
-  if (await fs.pathExists(PUBLIC_DIR)) {
+  if (await fs.pathExists(app.PUBLIC_DIR)) {
     // all files in `PUBLIC_DIR` are copied initially as Chokidar's `ignoreInitial`
     // option is set to false
     watchPublicFolder();
   }
 
   const clientConfig = createClientWebpackConfig({
+    app,
     isDebug: true,
     isAnalyze: false,
     isHmr: project.hmr,
   });
 
   const serverConfig = createServerWebpackConfig({
+    app,
     isDebug: true,
     isHmr: true,
   });
@@ -101,6 +74,7 @@ module.exports = async () => {
   // Start up server process
   const serverProcess = new ServerProcess({
     serverFilePath: cliArgs.server,
+    app,
   });
 
   // Start up webpack dev server
@@ -108,6 +82,7 @@ module.exports = async () => {
     publicPath: clientConfig.output.publicPath,
     https,
     host,
+    app,
   });
 
   serverCompiler.watch({ 'info-verbosity': 'none' }, async (error, stats) => {
