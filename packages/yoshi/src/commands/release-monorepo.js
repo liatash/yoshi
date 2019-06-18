@@ -3,7 +3,7 @@ const path = require('path');
 const execa = require('execa');
 const wnpm = require('wnpm-ci');
 const parseArgs = require('minimist');
-const { libs } = require('yoshi-helpers/monorepo');
+const { libs } = require('yoshi-config/monorepo');
 const { inTeamCity: checkInTeamCity } = require('yoshi-helpers/queries');
 
 const cliArgs = parseArgs(process.argv.slice(2));
