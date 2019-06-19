@@ -34,7 +34,7 @@ const {
   waitForCompilation,
 } = require('../webpack-utils');
 const ServerProcess = require('../server-process');
-const { watchPublicFolder } = require('./utils/assets');
+const { watchPublicFolder } = require('./utils/copy-assets');
 const rootApp = require('yoshi-config/root-app');
 
 const host = '0.0.0.0';
