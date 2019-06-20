@@ -3,7 +3,7 @@ const path = require('path');
 const execa = require('execa');
 const wnpm = require('wnpm-ci');
 const parseArgs = require('minimist');
-const { libs } = require('yoshi-config/monorepo');
+const loadPackages = require('yoshi-config/load-packages');
 const { inTeamCity: checkInTeamCity } = require('yoshi-helpers/queries');
 
 const cliArgs = parseArgs(process.argv.slice(2));
@@ -12,6 +12,8 @@ const shouldBumpMinor = cliArgs.minor;
 const inTeamCity = checkInTeamCity();
 
 module.exports = async () => {
+  const { libs } = await loadPackages();
+
   // Patch libraries' `package.json` main field to point to `dist`
   await Promise.all(
     libs.map(async lib => {
